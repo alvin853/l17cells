@@ -1,13 +1,13 @@
 // ==UserScript==
-// @id             iitc-plugin-l17cells@vib
-// @name           IITC plugin: Show Level 17 Cells
-// @author         vib
+// @id             iitc-plugin-s2cells@alvin853
+// @name           IITC plugin: Show various S2 Cells
+// @author         alvin853
 // @category       Layer
-// @version        0.1.5
-// @namespace      https://github.com/vibrunazo/l17cells
-// @updateURL      https://raw.githubusercontent.com/vibrunazo/l17cells/master/l17cells.meta.js
-// @downloadURL    https://raw.githubusercontent.com/vibrunazo/l17cells/master/l17cells.user.js
-// @description    IITC: Shows level 17 cells on the map
+// @version        0.1.6
+// @namespace      https://github.com/alvin853/s2cells
+// @updateURL      https://raw.githubusercontent.com/alvin853/s2cells/master/s2cells.meta.js
+// @downloadURL    https://raw.githubusercontent.com/alvin853/s2cells/master/s2cells.user.js
+// @description    IITC: Shows various S2 cells on the map
 // @include        https://*.ingress.com/intel*
 // @include        http://*.ingress.com/intel*
 // @match          https://*.ingress.com/intel*
@@ -34,9 +34,9 @@ function wrapper(plugin_info) {
 
 
   // use own namespace for plugin
-  window.plugin.regions = function() {};
+  window.plugin.s2cells = function() {};
 
-  window.plugin.regions.setup  = function() {
+  window.plugin.s2cells.setup  = function() {
     /// S2 Geometry functions
     // the regional scoreboard is based on a level 6 S2 Cell
     // - https://docs.google.com/presentation/d/1Hl4KapfAENAOf4gv-pSngKwvS_jwNVHRPZTTDzXXn6Q/view?pli=1#slide=id.i22
@@ -120,6 +120,9 @@ function wrapper(plugin_info) {
 
         return [u,v];
       };
+
+
+
 
       var XYZToFaceUV = function(xyz) {
         var face = largestAbsComponent(xyz);
@@ -341,19 +344,19 @@ function wrapper(plugin_info) {
     })();
 
 
-    window.plugin.regions.regionLayer = L.layerGroup();
+    window.plugin.s2cells.regionLayer = L.layerGroup();
 
-    addLayerGroup('Score Regions', window.plugin.regions.regionLayer, true);
+    addLayerGroup('S2 Cells', window.plugin.s2cells.regionLayer, true);
 
-    map.on('moveend', window.plugin.regions.update);
+    map.on('moveend', window.plugin.s2cells.update);
 
-    addHook('search', window.plugin.regions.search);
+    addHook('search', window.plugin.s2cells.search);
 
-    window.plugin.regions.update();
+    window.plugin.s2cells.update();
   };
 
   // rot and d2xy from Wikipedia
-  window.plugin.regions.rot = function(n, x, y, rx, ry) {
+  window.plugin.s2cells.rot = function(n, x, y, rx, ry) {
     if(ry == 0) {
       if(rx == 1) {
         x = n-1 - x;
@@ -364,12 +367,12 @@ function wrapper(plugin_info) {
     }
     return [x, y];
   }
-  window.plugin.regions.d2xy = function(n, d) {
+  window.plugin.s2cells.d2xy = function(n, d) {
     var rx, ry, s, t = d, xy = [0, 0];
     for(s=1; s<n; s*=2) {
       rx = 1 & (t/2);
       ry = 1 & (t ^ rx);
-      xy = window.plugin.regions.rot(s, xy[0], xy[1], rx, ry);
+      xy = window.plugin.s2cells.rot(s, xy[0], xy[1], rx, ry);
       xy[0] += s * rx;
       xy[1] += s * ry;
       t /= 4;
@@ -377,9 +380,9 @@ function wrapper(plugin_info) {
     return xy;
   };
 
-  window.plugin.regions.update = function() {
+  window.plugin.s2cells.update = function() {
 
-    window.plugin.regions.regionLayer.clearLayers();
+    window.plugin.s2cells.regionLayer.clearLayers();
 
     var bounds = map.getBounds();
 
@@ -398,7 +401,7 @@ function wrapper(plugin_info) {
 
         if (cellBounds.intersects(bounds)) {
           // on screen - draw it
-          window.plugin.regions.drawCell(cell, color);
+          window.plugin.s2cells.drawCell(cell, color);
 
           // and recurse to our neighbors
           var neighbors = cell.getNeighbors();
@@ -435,7 +438,7 @@ function wrapper(plugin_info) {
     if (zoom >= 12) {
       var cell = S2.S2Cell.FromLatLng ( center, 12 );
 
-      drawCellAndNeighbors(cell, 'violet');
+      drawCellAndNeighbors(cell, 'purple');
     }
 
 
@@ -448,21 +451,21 @@ function wrapper(plugin_info) {
       // the geodesic line code can't handle a line/polyline spanning more than (or close to?) 180 degrees, so we draw
       // each segment as a separate line
       var poly1 = L.geodesicPolyline ( [latLngs[i], latLngs[i+1]], globalCellOptions );
-      window.plugin.regions.regionLayer.addLayer(poly1);
+      window.plugin.s2cells.regionLayer.addLayer(poly1);
 
       //southern mirror of the above
       var poly2 = L.geodesicPolyline ( [[-latLngs[i][0],latLngs[i][1]], [-latLngs[i+1][0], latLngs[i+1][1]]], globalCellOptions );
-      window.plugin.regions.regionLayer.addLayer(poly2);
+      window.plugin.s2cells.regionLayer.addLayer(poly2);
     }
 
     // and the north-south lines. no need for geodesic here
     for (var i=-135; i<=135; i+=90) {
       var poly = L.polyline ( [[35.264389682754654,i], [-35.264389682754654,i]], globalCellOptions );
-      window.plugin.regions.regionLayer.addLayer(poly);
+      window.plugin.s2cells.regionLayer.addLayer(poly);
     }
   }
 
-  window.plugin.regions.drawCell = function(cell, color) {
+  window.plugin.s2cells.drawCell = function(cell, color) {
 
     //TODO: move to function - then call for all cells on screen
 
@@ -472,15 +475,12 @@ function wrapper(plugin_info) {
     // center point
     var center = cell.getLatLng();
 
-    // name
-    var name = window.plugin.regions.regionName(cell);
-
     // the level 6 cells have noticible errors with non-geodesic lines - and the larger level 4 cells are worse
     // NOTE: we only draw two of the edges. as we draw all cells on screen, the other two edges will either be drawn
     // from the other cell, or be off screen so we don't care
-    var region = L.geodesicPolyline([corners[0],corners[1],corners[2]], {fill: false, color: color, opacity: 0.5, weight: 5, clickable: false });
+    var region = L.geodesicPolyline([corners[0],corners[1],corners[2]], {fill: false, color: color, opacity: 0.5, weight: 5*3/(cell.level-9), clickable: false });
 
-    window.plugin.regions.regionLayer.addLayer(region);
+    window.plugin.s2cells.regionLayer.addLayer(region);
 
     // move the label if we're at a high enough zoom level and it's off screen
     if (map.getZoom() >= 9) {
@@ -502,7 +502,7 @@ function wrapper(plugin_info) {
     }
   };
 
-  var setup =  window.plugin.regions.setup;
+  var setup =  window.plugin.s2cells.setup;
 
   // PLUGIN END //////////////////////////////////////////////////////////
 
